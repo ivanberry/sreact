@@ -1,9 +1,10 @@
+let rootInstance = null;
 /**
  *
- * @param {React element/ native element} element
- * @param {native element} parentDom
+ * @param {Object} element 经CreateElement后的节点描述性对象
+ * @returns {Object}  根据表述对象实例的对象
  */
-export function render(element, parentDom) {
+function instantiate(element) {
     const { type, props } = element;
 
     // create element
@@ -29,13 +30,34 @@ export function render(element, parentDom) {
             dom[name] = props[name];
         });
 
+    /**
+     * Instantiate and append children
+     *
+     * Cache the DOM node, avoid creating or removing instances as much as it can.
+     * Creating and removing instance means that we will also be modifying the DOM
+     * tree, so the more we re-utilize instances the less we modify the DOM tree
+     */
     const childElements = props.children || [];
-    childElements.forEach(childElement => render(childElement, dom));
+    const childInstances = childElements.map(instantiate); // Recursive children element
+    const childDoms = childInstances.map(childInstance => childInstance.dom);
+    childDoms.forEach(childDom => dom.appendChild(childDom));
 
-    // Append or replace dom
-    if (!parentDom.lastChild) {
-        parentDom.appendChild(dom);
+    const instance = { dom, element, childInstances };
+    return instance;
+}
+
+function reconcile(parentDom, instance, element) {
+    const newInstance = instantiate(element);
+    if (instance === null) {
+        parentDom.appendChild(newInstance.dom);
     } else {
-        parentDom.replaceChild(dom, parentDom.lastChild);
+        parentDom.replaceChild(newInstance.dom, instance.dom);
     }
+    return newInstance;
+}
+
+export function render(element, container) {
+    const preInstance = rootInstance;
+    const nextInstance = reconcile(container, preInstance, element);
+    rootInstance = nextInstance;
 }
