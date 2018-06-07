@@ -34,7 +34,6 @@ var el = React.createElement(
  */
 
 export function createElement(type, config = {}, ...children) {
-    // chilren 可能是些什么呢？ null, undefined, false, 应该是一个数组
     const props = Object.assign({}, config);
     const hasChildren = children.length > 0;
 
